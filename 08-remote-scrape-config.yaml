@@ -48,7 +48,7 @@ data:
         bearer_token_file: /etc/prom-remote/user_token
 
         kubernetes_sd_configs:
-        - api_server: <insert api server ip>
+        - api_server: https://<insert api server ip>
           role: node
           tls_config:
             ca_file: /etc/prom-remote/ca.crt
