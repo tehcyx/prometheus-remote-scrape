@@ -48,7 +48,7 @@ data:
         bearer_token_file: /etc/prom-remote/user_token
 
         kubernetes_sd_configs:
-        - api_server: https://<insert api server ip>
+        - api_server: https://<api server ip>
           role: node
           tls_config:
             ca_file: /etc/prom-remote/ca.crt
@@ -58,8 +58,144 @@ data:
         - action: labelmap
           regex: __meta_kubernetes_node_label_(.+)
         - target_label: __address__
-          replacement: <insert api server ip>
+          replacement: <api server ip>
         - source_labels: [__meta_kubernetes_node_name]
           regex: (.+)
           target_label: __metrics_path__
           replacement: /api/v1/nodes/${1}/proxy/metrics
+
+      - job_name: 'kubernetes-service-endpoints-prom-cluster'
+
+        kubernetes_sd_configs:
+        - role: endpoints
+
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_service_name]
+          action: replace
+          target_label: kubernetes_name
+
+      - job_name: 'kubernetes-cadvisor-prom-cluster'
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: node
+
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+
+      - job_name: 'kubernetes-pods-prom-cluster'
+        
+        kubernetes_sd_configs:
+        - role: pod
+      
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: replace
+          target_label: kubernetes_pod_name
+
+      - job_name: 'kubernetes-service-endpoints-scrape-target'     
+        kubernetes_sd_configs:
+        - role: endpoints
+
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_service_name]
+          action: replace
+          target_label: kubernetes_name
+
+      - job_name: 'kubernetes-cadvisor-scrape-target'
+        scheme: https
+        tls_config:
+          ca_file: /etc/prom-remote/ca.crt
+        bearer_token_file: /etc/prom-remote/user_token
+
+        kubernetes_sd_configs:
+        - api_server: https://<api server ip>
+          role: node
+          tls_config:
+            ca_file: /etc/prom-remote/ca.crt
+          bearer_token_file: /etc/prom-remote/user_token
+
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __address__
+          replacement: <api server ip>
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+
+      - job_name: 'kubernetes-pods-scrape-target'
+
+        kubernetes_sd_configs:
+        - api_server: https://<api server ip>
+          role: pod
+          tls_config:
+            ca_file: /etc/prom-remote/ca.crt
+          bearer_token_file: /etc/prom-remote/user_token
+
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - target_label: __address__
+          replacement: <api server ip>
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
+          regex: ^$
+          replacement: http
+          target_label: __meta_kubernetes_pod_annotation_prometheus_io_scheme
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+          regex: ^$
+          replacement: "8080"
+          target_label: __meta_kubernetes_pod_annotation_prometheus_io_port
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          regex: (.+)
+          replacement: ${1}
+          target_label: __metrics_path__
+        - source_labels:
+          - __meta_kubernetes_namespace
+          - __meta_kubernetes_pod_annotation_prometheus_io_scheme
+          - __meta_kubernetes_pod_name
+          - __meta_kubernetes_pod_annotation_prometheus_io_port
+          - __metrics_path__
+          regex: (.+);(.+);(.+);(.+);(.+)
+          action: replace
+          target_label: __metrics_path__
+          replacement: /api/v1/namespaces/${1}/pods/${2}:${3}:${4}/proxy${5}
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: replace
+          target_label: kubernetes_pod_name
+        - source_labels: [__meta_kubernetes_pod_node_name]
+          target_label: kubernetes_node_name
+        - source_labels: [__meta_kubernetes_pod_name]
+          target_label: instance
