@@ -57,6 +57,8 @@ kubectl apply -f 09-remote-scrape-deployment.yaml
 
 # Setup all the above with kind
 
+> kind doesn't show all the resources that a hyperscaler cluster does.
+
 ```
 kind create cluster --name prom-cluster
 kind create cluster --name scrape-cluster
