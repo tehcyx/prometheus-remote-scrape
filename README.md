@@ -54,3 +54,28 @@ kubectl apply -f 08-remote-scrape-config.yaml
 kubectl delete -f 05-adjusted-prom-deployment.yaml
 kubectl apply -f 09-remote-scrape-deployment.yaml
 ```
+
+# Setup all the above with kind
+
+```
+kind create cluster --name prom-cluster
+kind create cluster --name scrape-cluster
+kubectl apply -f 03-clusterrole-prometheus.yaml
+./06-get-tokens.sh
+```
+
+Now change the `08-remote-scrape-config.yaml`.
+
+```
+kubectl config use-context kind-prom-cluster
+kubectl apply -f 03-clusterrole-prometheus.yaml
+kubectl apply -f 07-remote-cluster-secrets.yaml
+kubectl apply -f 08-remote-scrape-config.yaml
+kubectl apply -f 09-remote-scrape-deployment.yaml
+```
+
+Now everything should be started and you can do
+```
+kubectl port-forward deploy/prometheus-deployment 9090:9090
+```
+Open your browser at http://localhost:9090/targets
