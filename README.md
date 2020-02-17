@@ -13,7 +13,7 @@ Open your browser at http://localhost:9090/targets
 
 You should see that prometheus is up and running and monitoring itself.
 
-# Change the config to scrape k8s metrics
+## Change the config to scrape k8s metrics
 Create a cluster role to allow prometheus to scrape cluster metrics
 ```
 kubectl apply -f 03-clusterrole-prometheus.yaml
@@ -31,7 +31,7 @@ kubectl delete -f 02-prometheus-deployment.yaml
 kubectl apply -f 05-adjusted-prom-deployment.yaml
 ```
 
-# Scrape metrics from a different cluster
+## Scrape metrics from a different cluster
 Change the kubectl context to the second cluster and run
 ```
 kubectl apply -f 03-clusterrole-prometheus.yaml
